@@ -1,0 +1,13 @@
+fortressintro
+[TITLE]A Foundation Site[/TITLE]
+[P]You have arrived. When the O5s decided that you and 6 other 
+foundation members were going to embark into the
+forbidding wilderness beyond.
+You thought that [VAR:NATIVENAME:GLOBAL:YOURCIV] had effectively infinite supply,
+but the O5s (or at least their proxies) dissuaded you of that.
+[P]There are almost no supplies left,
+but you've read the survival manuals. Just follow your directions
+and you'll get through this. You've heard
+about all of the [VAR:NAME_PLURAL:GLOBAL:LOCAL_LARGE_PREDATOR] around here, but those are just animals.
+You have much more to worry about than animals.
+A new tale of the Foundation's efforts begin here at this place, [VAR:NATIVENAME:GLOBAL:YOURFORT], "[VAR:TRANSLATEDNAME:GLOBAL:YOURFORT]". Get to it!
