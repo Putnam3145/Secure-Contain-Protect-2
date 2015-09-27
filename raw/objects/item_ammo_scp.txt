@@ -1,0 +1,17 @@
+item_ammo_scp
+
+[OBJECT:ITEM]
+
+[ITEM_AMMO:RIFLE_AMMO_SCP] 
+	[NAME:rifle bullet:rifle bullets]
+	[CLASS:RIFLE]
+	[SIZE:1] used a 5.56x45mm nato round as an example, tried to figure out the volume of the bullet, turned out about a half a mL at most, which is half of the smallest size in DF
+	[ATTACK:EDGE:5:5:whack:whacks:NO_SUB:1000]
+		[ATTACK_PREPARE_AND_RECOVER:3:3]
+		
+[ITEM_AMMO:PISTOL_AMMO_SCP]
+	[NAME:pistol bullet:pistol bullets]
+	[CLASS:PISTOL]
+	[SIZE:1] ...i literally cannot get smaller than this
+	[ATTACK:EDGE:2:5:whack:whacks:NO_SUB:1000]
+		[ATTACK_PREPARE_AND_RECOVER:3:3]

@@ -1,0 +1,29 @@
+item_weapon_scp
+
+[OBJECT:ITEM]
+
+[ITEM_WEAPON:RIFLE_SCP]
+	[NAME:rifle:rifles] generic intentionally, because if i do something specific people will probably get ruffled when i'm inevitably wrong (i ain't a gun guy)
+	[SIZE:400]
+	[SKILL:HAMMER]
+	[RANGED:CROSSBOW:RIFLE]
+	[SHOOT_FORCE:1500000] ten times crossbow force momentum in the bullet
+	[SHOOT_MAXVEL:2000]  This is just to make sure a near-weightless object doesn't go faster than the string could possibly go.
+	[TWO_HANDED:100000]
+	[MINIMUM_SIZE:50000]
+	[MATERIAL_SIZE:4]
+	[ATTACK:BLUNT:10000:4000:bash:bashes:NO_SUB:1250]
+		[ATTACK_PREPARE_AND_RECOVER:3:3]
+		
+[ITEM_WEAPON:RIFLE_SCP]
+	[NAME:rifle:rifles] 
+	[SIZE:400]
+	[SKILL:HAMMER]
+	[RANGED:CROSSBOW:PISTOL]
+	[SHOOT_FORCE:750000] 
+	[SHOOT_MAXVEL:2000]
+	[TWO_HANDED:60000]
+	[MINIMUM_SIZE:25000]
+	[MATERIAL_SIZE:2]
+	[ATTACK:BLUNT:10000:4000:bash:bashes:NO_SUB:1250]
+		[ATTACK_PREPARE_AND_RECOVER:3:3]
