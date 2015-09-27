@@ -1,0 +1,7 @@
+reaction_scp_cheat
+
+[OBJECT:REACTION]
+
+[REACTION:CREATE_KEVLAR] because SCREW that process, goddamn, just buy it
+[NAME:dummy]
+[PRODUCT:100:5:BAR:NONE:INORGANIC:KEVLAR][PRODUCT_DIMENSION:150]
