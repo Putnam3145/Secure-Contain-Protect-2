@@ -1,0 +1,9 @@
+inorganic_scp_syndromes
+
+[OBJECT:INORGANIC]
+
+[INORGANIC:DFHACK_SYNDROMES_FOR_SCP_MOD]
+        [SYNDROME]
+		 [SYN_NAME:scp 173 stopped]
+		 [CE_BODY_TRANSFORMATION:START:0:END:90]
+              [CE:CREATURE:SCP_173:FROZEN]
