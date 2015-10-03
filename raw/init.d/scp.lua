@@ -1,3 +1,5 @@
+local eventful=require('plugins.eventful')
+
 local eraseReport = function(unit,report)
  for i,v in ipairs(unit.reports.log.Combat) do
   if v == report then
@@ -46,4 +48,36 @@ stateEvents[SC_WORLD_LOADED]=stateEvents[SC_MAP_LOADED]
 function onStateChange(op)
     local stateChangeFunc=stateEvents[op] or function() return end
     stateChangeFunc()
+end
+
+local workshopFuncs={}
+
+workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
+    local guidm=require('gui.dwarfmode')
+    local widgets=require('gui.widgets')
+    local scipNetScreen=defclass(scipNetScreen,guidm.MenuOverlay)
+    function scipNetScreen:init()
+        self.building=dfhack.gui.getSelectedBuilding()
+    end
+    function scipNetScreen:onRenderBody(dc)
+        dc:seek(1,1):string('Press the '):key('SELECT'):string(' key to access SCiPNET')
+        local selectedBuilding=dfhack.gui.getSelectedBuilding()
+        if not selectedBuilding or selectedBuilding~=self.building then self:dismiss() end
+    end
+    function scipNetScreen:onInput(keys)
+        if keys.SELECT then
+            dfhack.run_script('scp/scipnet')
+        else
+            self:inputToSubviews(keys)
+        end
+    end
+    function 
+end
+
+eventful.onWorkshopFillSidebarMenu.scp=function(workshop,callnative)
+    if df.workshop_type[workshop.custom_type]=='Custom' then
+        local customWorkshopType=df.building_def.find(workshop.custom_type)
+        local workshopFunc=workshopFuncs[op] or function() return end
+        workshopFunc(workshop,callnative)
+    end
 end
