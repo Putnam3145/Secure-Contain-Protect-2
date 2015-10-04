@@ -29,9 +29,11 @@ function Button:onInput(keys)
 end
 
 function Button:init(args)
+    print('Searching for tilepage '..self.graphic)
     for k,v in ipairs(df.global.texture.page) do
-        if v.token==self.graphic then self.page=v break end
+        if v.token==self.graphic then self.page=v return end
     end
+    error('No tilepage found.')
 end
 
 SCPViewScreen=defclass(SCPViewScreen,gui.FramedScreen)
