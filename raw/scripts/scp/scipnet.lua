@@ -29,11 +29,10 @@ function Button:onInput(keys)
 end
 
 function Button:init(args)
-    print('Searching for tilepage '..self.graphic)
     for k,v in ipairs(df.global.texture.page) do
         if v.token==self.graphic then self.page=v return end
     end
-    error('No tilepage found.')
+    error('No tilepage found: '..self.graphic)
 end
 
 SCPViewScreen=defclass(SCPViewScreen,gui.FramedScreen)
@@ -45,71 +44,94 @@ SCPViewScreen.ATTRS={
     on_enter=DEFAULT_NIL
 }
 
+function lineBreakTableString(str)
+    local prevBreak=1
+    local str_list={}
+    for i=1,str:len() do
+        if str:sub(i,i)=='\n' then
+            table.insert(str_list,str:sub(prevBreak,i-1))
+            prevBreak=i+1
+        end
+    end
+    table.insert(str_list,str:sub(prevBreak,str:len()))
+    return str_list
+end
+
+function wordWrapString(str,limit)
+    local words=str:gmatch("%g+")
+    local cur_string=""
+    local prev_string=""
+    local str_list={}
+    for word in words do
+        prev_string=cur_string
+        cur_string=cur_string..word..' '
+        if cur_string:len()>limit then
+            table.insert(str_list,prev_string)
+            cur_string=word..' '
+        end
+    end
+    table.insert(str_list,cur_string)
+    return str_list
+end
+
 function separateString(str,limit)
     local str_list={}
-    for i=1,str:len(),limit do
-        table.insert(str_list,str:sub(i,i+str_limit-1))
+    local lineBrokenStrs=lineBreakTableString(str)
+    for k,v in ipairs(lineBrokenStrs) do
+        for kk,vv in ipairs(wordWrapString(v,limit)) do
+            table.insert(str_list,vv)
+        end
     end
     return str_list
 end
 
 function SCPViewScreen:init()
-    local line=separateString(self.description,self.frame_width)
+    self.width,self.height=dfhack.screen.getWindowSize()
+    local line=separateString(self.description,self.width-4)
     local labels={}
     for k,v in ipairs(line) do
         table.insert(labels,widgets.Label{text=v,frame={t=k,l=1}})
     end
     self:addviews(labels)
     for k,child in ipairs(self.subviews) do
-        if child.frame.t<1 or child.frame.t>self.frame_height then child.visible=false end
+        if child.frame.t<1 or child.frame.t>self.height then child.visible=false else child.visible=true end
     end
 end
 
 function SCPViewScreen:onInput(keys)
-    if keys.STANDARDSCROLL_UP then
+    if keys.STANDARDSCROLL_UP then 
         for k,v in ipairs(self.subviews) do
             v.frame.t=v.frame.t+1
-            if child.frame.t<1 or child.frame.t>self.frame_height then child.visible=false end
+            if v.frame.t<1 or v.frame.t>self.height then v.visible=false else v.visible=true end
+            pcall(function() v:updateLayout() end) --this gives an error when it's not in a pcall, but it works perfectly fine either way. I apologize to everyone.
         end
     elseif keys.STANDARDSCROLL_DOWN then
         for k,v in ipairs(self.subviews) do
             v.frame.t=v.frame.t-1
-            if child.frame.t<1 or child.frame.t>self.frame_height then child.visible=false end
+            if v.frame.t<1 or v.frame.t>self.height then v.visible=false else v.visible=true end
+            pcall(function() v:updateLayout() end)
         end
     elseif keys.LEAVESCREEN then
         self:dismiss()
     end
 end
 
-function SCPViewScreen:postUpdateLayout(parent_rect)
-    local line=separateString(self.description,self.frame_width)
-    local labels={}
-    self.subviews={}
-    for k,v in ipairs(line) do
-        table.insert(labels,widgets.Label{text=v,frame={t=k,l=1}})
-    end
-    self:addviews(labels)
-    for k,child in ipairs(self.subviews) do
-        if child.frame.t<1 or child.frame.t>self.frame_height then child.visible=false end
-    end
-end
+SCPViewScreen.postUpdateLayout=SCPViewScreen.init
 
 skips={}
 
 skips['SCP-173']={
-    description=[[
-Item #: SCP-173
+    description=string.format([[Item #: SCP-173
 
 Object Class: Euclid
 
 Special Containment Procedures: Item SCP-173 is to be kept in a locked container at all times. When personnel must enter SCP-173's container, no fewer than 3 may enter at any time and the door is to be relocked behind them. At all times, two persons must maintain direct eye contact with SCP-173 until all personnel have vacated and relocked the container.
 
 Description: Moved to Site-19 1993. Origin is as of yet unknown. It is constructed from concrete and rebar with traces of Krylon brand spray paint. SCP-173 is animate and extremely hostile. The object cannot move while within a direct line of sight. Line of sight must not be broken at any time with SCP-173. Personnel assigned to enter container are instructed to alert one another before blinking. Object is reported to attack by snapping the neck at the base of the skull, or by strangulation. In the event of an attack, personnel are to observe Class 4 hazardous object containment procedures.
-
 Personnel report sounds of scraping stone originating from within the container when no one is present inside. This is considered normal, and any change in this behaviour should be reported to the acting HMCL supervisor on duty.
-
 The reddish brown substance on the floor is a combination of feces and blood. Origin of these materials is unknown. The enclosure must be cleaned on a bi-weekly basis.
-    ]]
+
+Note from Researcher Putnam: Can't get through metal doors. Keep at least two people on it at all times or it will kill something. Ever since the CK class restructuring event %s %s ago, it can heal itself when it is looked upon or unobserved due to its entire body transforming for that effect to happen.]],tostring(df.global.cur_year),df.global.cur_year>1 and "years" or "year")
 }
 
 SCPList=defclass(SCPList,gui.FramedScreen)
@@ -121,10 +143,17 @@ function SCPList:init()
                 'SCP-173',
             },
             on_submit=function(index,choice)
-                SCPViewScreen(skips[choice])
+                SCPViewScreen(skips[choice.text]):show()
             end
         }
     }
+end
+
+function SCPList:onInput(keys)
+    if keys.LEAVESCREEN then
+        self:dismiss()
+    end
+    self:inputToSubviews(keys)
 end
 
 function showSCPView()
@@ -177,9 +206,16 @@ function ScipNetScreen:init()
         widgets.Label{
             frame={b=1,l=1},
             view_id='highlight_label',
-            label=''
+            text=' '
         },
     }
+end
+
+function ScipNetScreen:onInput(keys)
+    if keys.LEAVESCREEN then
+        self:dismiss()
+    end
+    self:inputToSubviews(keys)
 end
 
 local scipnet=ScipNetScreen()
