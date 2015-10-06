@@ -148,10 +148,19 @@ function SCPViewScreen:renderSubviews(dc)
     if not highlighted then self.subviews.highlight_label:setText('') end
 end
 
-function offerToContain(cost,scp_type,scp_designation,scp_caste)
+function firstCitizenFound()
+	for k,v in ipairs(df.global.world.units.active) do
+		if dfhack.units.isCitizen(v) and dfhack.units.isAlive(v) then
+			return v
+		end
+	end
+end
+
+function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
     local resources=dfhack.script_environment('scp/resources')
     local site=df.global.ui.site_id
     local confidenceAmount=resources.getResourceAmount(site,'confidence')
+	if dfhack.persistent.get('SCP_ALREADY_HERE/'..site) then return false end
     if confidenceAmount>cost/10 then
         local creditSpendSuccessful=resources.adjustResource(site,'credits',cost,true)
         if creditSpendSuccessful then
@@ -174,7 +183,11 @@ function offerToContain(cost,scp_type,scp_designation,scp_caste)
                 dfhack.persistent.save({key='DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..newUnit.id,ints={math.abs(cost*2)}})
                 local teleport = dfhack.script_environment('teleport')
                 teleport.teleport(newUnit,teleportPos)
-            end
+            elseif scp_type=='item' then
+				local citizen=firstCitizenFound()
+				dfhack.items.createItem(scp_subdesignation, scp_designation, mat[1], mat[2],citizen)
+				dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=false,PAUSE=true},citizen.pos,scp_designation..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true)
+			end
         else
             local dlg=require('gui.dialogs')
             dlg.showMessage('SCiPNET message','You do not have enough credits to accept that SCP.')
