@@ -35,13 +35,10 @@ function Button:init(args)
     error('No tilepage found: '..self.graphic)
 end
 
-SCPViewScreen=defclass(SCPViewScreen,gui.FramedScreen)
+SCPTextViewer=defclass(SCPTextViewer,gui.FramedScreen)
 
-SCPViewScreen.ATTRS={
+SCPTextViewer.ATTRS={
     description="",
-    picture=DEFAULT_NIL,
-    cost=0,
-    on_enter=DEFAULT_NIL
 }
 
 function lineBreakTableString(str)
@@ -85,7 +82,8 @@ function separateString(str,limit)
     return str_list
 end
 
-function SCPViewScreen:init()
+function SCPTextViewer:init()
+    self.scroll=0
     self.width,self.height=dfhack.screen.getWindowSize()
     local line=separateString(self.description,self.width-4)
     local labels={}
@@ -98,14 +96,23 @@ function SCPViewScreen:init()
     end
 end
 
-function SCPViewScreen:onInput(keys)
+function SCPTextViewer:onResize(w,h)
+    gui.FramedScreen.onResize(self,w,h)
+    self:init()
+end
+
+function SCPTextViewer:onInput(keys)
     if keys.STANDARDSCROLL_UP then 
-        for k,v in ipairs(self.subviews) do
-            v.frame.t=v.frame.t+1
-            if v.frame.t<1 or v.frame.t>self.height then v.visible=false else v.visible=true end
-            pcall(function() v:updateLayout() end) --this gives an error when it's not in a pcall, but it works perfectly fine either way. I apologize to everyone.
+        if self.scroll>0 then
+            self.scroll=self.scroll-1
+            for k,v in ipairs(self.subviews) do
+                v.frame.t=v.frame.t+1
+                if v.frame.t<1 or v.frame.t>self.height then v.visible=false else v.visible=true end
+                pcall(function() v:updateLayout() end) --this gives an error when it's not in a pcall, but it works perfectly fine either way. I apologize to everyone.
+            end
         end
     elseif keys.STANDARDSCROLL_DOWN then
+        self.scroll=self.scroll+1
         for k,v in ipairs(self.subviews) do
             v.frame.t=v.frame.t-1
             if v.frame.t<1 or v.frame.t>self.height then v.visible=false else v.visible=true end
@@ -116,29 +123,111 @@ function SCPViewScreen:onInput(keys)
     end
 end
 
-SCPViewScreen.postUpdateLayout=SCPViewScreen.init
+skips=dfhack.script_environment('scp/scp_list').skips
 
-skips={}
+SCPViewScreen=defclass(SCPViewScreen,gui.FramedScreen)
 
-skips['SCP-173']={
-    description=string.format([[Item #: SCP-173
-
-Object Class: Euclid
-
-Special Containment Procedures: Item SCP-173 is to be kept in a locked container at all times. When personnel must enter SCP-173's container, no fewer than 3 may enter at any time and the door is to be relocked behind them. At all times, two persons must maintain direct eye contact with SCP-173 until all personnel have vacated and relocked the container.
-
-Description: Moved to Site-19 1993. Origin is as of yet unknown. It is constructed from concrete and rebar with traces of Krylon brand spray paint. SCP-173 is animate and extremely hostile. The object cannot move while within a direct line of sight. Line of sight must not be broken at any time with SCP-173. Personnel assigned to enter container are instructed to alert one another before blinking. Object is reported to attack by snapping the neck at the base of the skull, or by strangulation. In the event of an attack, personnel are to observe Class 4 hazardous object containment procedures.
-Personnel report sounds of scraping stone originating from within the container when no one is present inside. This is considered normal, and any change in this behaviour should be reported to the acting HMCL supervisor on duty.
-The reddish brown substance on the floor is a combination of feces and blood. Origin of these materials is unknown. The enclosure must be cleaned on a bi-weekly basis.
-
-Note from Researcher Putnam: Can't get through metal doors. Keep at least two people on it at all times or it will kill something. Ever since the CK class restructuring event %s %s ago, it can heal itself when it is looked upon or unobserved due to its entire body transforming for that effect to happen.]],tostring(df.global.cur_year),df.global.cur_year>1 and "years" or "year")
+SCPViewScreen.ATTRS={
+    description="",
+    picture=DEFAULT_NIL, --refers to the name of a tilepage
+    cost=0,
+    on_enter=DEFAULT_NIL,
+    type=DEFAULT_NIL, -- "creature" or "item"
+    designation=DEFAULT_NIL, -- raw ID of SCP
+    caste='DEFAULT'
 }
+
+function SCPViewScreen:renderSubviews(dc)
+    local highlighted=false
+    for _,child in ipairs(self.subviews) do
+        if child:getMousePos() then self.subviews.highlight_label:setText(child.label) highlighted=true end
+        if child.visible then
+            child:render(dc)
+        end
+    end
+    if not highlighted then self.subviews.highlight_label:setText('') end
+end
+
+function offerToContain(cost,scp_type,scp_designation,scp_caste)
+    local resources=dfhack.script_environment('scp/resources')
+    local site=df.global.ui.site_id
+    local confidenceAmount=resources.getResourceAmount(site,'confidence')
+    if confidenceAmount>cost/10 then
+        local creditSpendSuccessful=resources.adjustResource(site,'credits',cost,true)
+        if creditSpendSuccessful then
+            if scp_type=='creature' then
+                local teleportPos
+                for k,v in ipairs(df.global.world.buildings.other.WORKSHOP_CUSTOM) do
+                    local customWorkshopType=df.building_def.find(v.custom_type)
+                    if customWorkshopType.code=='SCP_WELCOMING_STATION' then
+                        teleportPos={x=v.x1,y=v.y1,z=v.z}
+                        break
+                    end
+                end
+                if not teleportPos then
+                    local dlg=require('gui.dialogs')
+                    dlg.showMessage('SCiPNET message','You have not built a station to accept that SCP.')
+                    return
+                end
+                local createUnit=dfhack.script_environment('scp/create-unit').createUnit
+                local newUnit=createUnit(scp_designation,scp_caste)
+                dfhack.persistent.save({key='DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..newUnit.id,ints={math.abs(cost*2)}})
+                local teleport = dfhack.script_environment('teleport')
+                teleport.teleport(newUnit,teleportPos)
+            end
+        else
+            local dlg=require('gui.dialogs')
+            dlg.showMessage('SCiPNET message','You do not have enough credits to accept that SCP.')
+        end
+    else
+        local dlg=require('gui.dialogs')
+        dlg.showMessage('SCiPNET message','We are not confident enough in your containment abilities to grant that SCP.')
+    end
+end
+
+function SCPViewScreen:init()
+    self:addviews{
+        Button{
+            graphic='DESCRIPTION_LOGO',
+            label='View SCP Description',
+            on_click=function()
+                SCPTextViewer{description=self.description}:show()
+            end,
+            frame={t=1,l=1}
+        },
+        Button{
+            graphic='OFFER_TO_CONTAIN_LOGO',
+            label='Offer to contain this SCP',
+            on_click=function()
+                offerToContain(self.cost,self.type,self.designation,self.caste)
+            end,
+            frame={t=1,l=9}
+        },
+        Button{
+            graphic=self.picture,
+            label="Figure of SCP",
+            frame={t=0,r=0}
+        },
+        widgets.Label{
+            frame={b=1,l=1},
+            view_id='highlight_label',
+            text=' '
+        },
+    }
+end
+
+function SCPViewScreen:onInput(keys)
+    if keys.LEAVESCREEN then
+        self:dismiss()
+    end
+    self:inputToSubviews(keys)
+end
 
 SCPList=defclass(SCPList,gui.FramedScreen)
 
 function SCPList:init()
     self:addviews{
-        widgets.List{
+        widgets.FilteredList{
             choices={
                 'SCP-173',
             },

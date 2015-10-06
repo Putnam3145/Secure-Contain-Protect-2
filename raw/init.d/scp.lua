@@ -55,6 +55,7 @@ local workshopFuncs={}
 workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
     local guidm=require('gui.dwarfmode')
     local widgets=require('gui.widgets')
+    callnative=false
     local scipNetScreen=defclass(scipNetScreen,guidm.MenuOverlay)
     function scipNetScreen:init()
         self.building=dfhack.gui.getSelectedBuilding()
@@ -69,15 +70,16 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
             dfhack.run_script('scp/scipnet')
         else
             self:inputToSubviews(keys)
+            self:sendInputToParent(keys)
         end
     end
-    function 
+    scipNetScreen():show()
 end
 
 eventful.onWorkshopFillSidebarMenu.scp=function(workshop,callnative)
     if df.workshop_type[workshop.custom_type]=='Custom' then
         local customWorkshopType=df.building_def.find(workshop.custom_type)
-        local workshopFunc=workshopFuncs[op] or function() return end
+        local workshopFunc=workshopFuncs[customWorkshopType.code] or function() return end
         workshopFunc(workshop,callnative)
     end
 end
