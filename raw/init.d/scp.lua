@@ -83,3 +83,30 @@ eventful.onWorkshopFillSidebarMenu.scp=function(workshop,callnative)
         workshopFunc(workshop,callnative)
     end
 end
+
+eventful.onUnitDeath.scp=function(unit_id)
+	local confidence_drop=dfhack.persistent.get('DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..unit_id)
+	if confidence_drop then
+		local resource=dfhack.script_environment('scp/resources')
+		resource.adjustResource(site_id,'confidence',confidence_drop.ints[1])
+		resource.adjustResource(site_id,'delta_confidence',math.floor((-confidence_drop.ints[1]/20)+.5))
+	end
+end
+
+eventful.enableEvent(eventful.eventType.UNIT_DEATH,5)
+
+local function increaseConfidence()
+	if df.global.gamemode=df.game_mode.DWARF and ((math.floor(df.global.cur_year_tick)/1200)-1)%28==0 then --rounds year tick to nearest day, makes it count from 0, checks if first day of month
+		local resource=dfhack.script_environment('scp/resources')
+		local site_id=df.global.ui.site_id
+		local delta_confidence=resource.getResourceAmount(site_id,'delta_confidence')
+		if delta_confidence<10 then
+			resource.adjustResource(site_id,'delta_confidence',10-delta_confidence)
+		end
+		resource.adjustResource(site_id,'confidence',delta_confidence)
+	end
+end
+
+local repeat_util=require('repeat-util')
+
+repeat_util.scheduleEvery('monthly_confidence_boost',600,'ticks',increaseConfidence)
