@@ -149,19 +149,19 @@ function SCPViewScreen:renderSubviews(dc)
 end
 
 function firstCitizenFound()
-	for k,v in ipairs(df.global.world.units.active) do
-		if dfhack.units.isCitizen(v) and dfhack.units.isAlive(v) then
-			return v
-		end
-	end
+    for k,v in ipairs(df.global.world.units.active) do
+        if dfhack.units.isCitizen(v) and dfhack.units.isAlive(v) then
+            return v
+        end
+    end
 end
 
 function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
     local resources=dfhack.script_environment('scp/resources')
     local site=df.global.ui.site_id
     local confidenceAmount=resources.getResourceAmount(site,'confidence')
-	if dfhack.persistent.get('SCP_ALREADY_HERE/'..site) then return false end
-    if confidenceAmount>cost/10 then
+    if dfhack.persistent.get('SCP_ALREADY_HERE/'..site) then return false end
+    if confidenceAmount>cost then
         local creditSpendSuccessful=resources.adjustResource(site,'credits',cost,true)
         if creditSpendSuccessful then
             if scp_type=='creature' then
@@ -183,11 +183,12 @@ function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
                 dfhack.persistent.save({key='DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..newUnit.id,ints={math.abs(cost*2)}})
                 local teleport = dfhack.script_environment('teleport')
                 teleport.teleport(newUnit,teleportPos)
+                resources.adjustResource(site,'delta_confidence',cost/10)
             elseif scp_type=='item' then
-				local citizen=firstCitizenFound()
-				dfhack.items.createItem(scp_subdesignation, scp_designation, mat[1], mat[2],citizen)
-				dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=false,PAUSE=true},citizen.pos,scp_designation..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true)
-			end
+                local citizen=firstCitizenFound()
+                dfhack.items.createItem(scp_subdesignation, scp_designation, mat[1], mat[2],citizen)
+                dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=false,PAUSE=true},citizen.pos,scp_designation..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true)
+            end
         else
             local dlg=require('gui.dialogs')
             dlg.showMessage('SCiPNET message','You do not have enough credits to accept that SCP.')
@@ -242,6 +243,7 @@ function SCPList:init()
     self:addviews{
         widgets.FilteredList{
             choices={
+                'SCP-117',
                 'SCP-173',
             },
             on_submit=function(index,choice)
@@ -261,6 +263,156 @@ end
 function showSCPView()
     local scp_list=SCPList()
     return scp_list:show()
+end
+
+
+local function getRestrictiveMatFilter(itemType)
+ local itemTypes={
+   WEAPON=function(mat,parent,typ,idx)
+    return (mat.flags.ITEMS_WEAPON or mat.flags.ITEMS_WEAPON_RANGED)
+   end,
+   AMMO=function(mat,parent,typ,idx)
+    return (mat.flags.ITEMS_AMMO)
+   end,
+   ARMOR=function(mat,parent,typ,idx)
+    return (mat.flags.ITEMS_ARMOR)
+   end,
+   INSTRUMENT=function(mat,parent,typ,idx)
+    return (mat.flags.ITEMS_HARD)
+   end,
+   AMULET=function(mat,parent,typ,idx)
+    return (mat.flags.ITEMS_SOFT or mat.flags.ITEMS_HARD)
+   end,
+   ROCK=function(mat,parent,typ,idx)
+    return (mat.flags.IS_STONE)
+   end,
+   BOULDER=ROCK,
+   BAR=function(mat,parent,typ,idx)
+    return (mat.flags.IS_METAL or mat.flags.SOAP or mat.id==COAL)
+   end
+
+  }
+ for k,v in ipairs({'GOBLET','FLASK','TOY','RING','CROWN','SCEPTER','FIGURINE','TOOL'}) do
+  itemTypes[v]=itemTypes.INSTRUMENT
+ end
+ for k,v in ipairs({'SHOES','SHIELD','HELM','GLOVES'}) do
+    itemTypes[v]=itemTypes.ARMOR
+ end
+ for k,v in ipairs({'EARRING','BRACELET'}) do
+    itemTypes[v]=itemTypes.AMULET
+ end
+ itemTypes.BOULDER=itemTypes.ROCK
+ return itemTypes[df.item_type[itemType]]
+end
+
+local function getMatFilter(itemtype)
+  local itemTypes={
+   SEEDS=function(mat,parent,typ,idx)
+    return mat.flags.SEED_MAT
+   end,
+   PLANT=function(mat,parent,typ,idx)
+    return mat.flags.STRUCTURAL_PLANT_MAT
+   end,
+   LEAVES=function(mat,parent,typ,idx)
+    return mat.flags.LEAF_MAT
+   end,
+   MEAT=function(mat,parent,typ,idx)
+    return mat.flags.MEAT
+   end,
+   CHEESE=function(mat,parent,typ,idx)
+    return (mat.flags.CHEESE_PLANT or mat.flags.CHEESE_CREATURE)
+   end,
+   LIQUID_MISC=function(mat,parent,typ,idx)
+    return (mat.flags.LIQUID_MISC_PLANT or mat.flags.LIQUID_MISC_CREATURE or mat.flags.LIQUID_MISC_OTHER)
+   end,
+   POWDER_MISC=function(mat,parent,typ,idx)
+    return (mat.flags.POWDER_MISC_PLANT or mat.flags.POWDER_MISC_CREATURE)
+   end,
+   DRINK=function(mat,parent,typ,idx)
+    return (mat.flags.ALCOHOL_PLANT or mat.flags.ALCOHOL_CREATURE)
+   end,
+   GLOB=function(mat,parent,typ,idx)
+    return (mat.flags.STOCKPILE_GLOB)
+   end,
+   WOOD=function(mat,parent,typ,idx)
+    return (mat.flags.WOOD)
+   end,
+   THREAD=function(mat,parent,typ,idx)
+    return (mat.flags.THREAD_PLANT)
+   end,
+   LEATHER=function(mat,parent,typ,idx)
+    return (mat.flags.LEATHER)
+   end
+  }
+  return itemTypes[df.item_type[itemtype]] and or getRestrictiveMatFilter(itemtype)
+end
+
+local function showMaterialPrompt(title, prompt, filter, inorganic, creature, plant) --the one included with DFHack doesn't have a filter or the inorganic, creature, plant things available
+ require('gui.materials').MaterialDialog{
+  frame_title = title,
+  prompt = prompt,
+  mat_filter = filter,
+  use_inorganic = inorganic,
+  use_creature = creature,
+  use_plant = plant,
+  on_select = script.mkresume(true),
+  on_cancel = script.mkresume(false),
+  on_close = script.qresume(nil)
+ }:show()
+ 
+  return script.wait()
+end
+
+requisitionsTable=dfhack.script_environment('scp/requisitions_list').requisitions
+
+function requisitionItem(cost,itemtype,itemsubtype)
+    local script=require('gui.script')
+    script.start(function()
+        local specificmatFilter=getMatFilter(itemtype)
+        local matFilter=function(mat,parent,typ,idx)
+            return not mat.flags.SPECIAL and specificmatFilter(mat,parent,typ,idx)
+        end
+        local matok,mattype,matindex=showMaterialPrompt('Requisitions','Choose a material',matFilter,true,false,false)
+        local unit=firstCitizenFound()
+        dfhack.items.createItem(itemtype, itemsubtype, mattype, matindex, unit)
+    end)
+end
+
+RequisitionView=defclass(RequisitionView,gui.FramedScreen)
+
+function RequisitionView:init()
+    self.costLabel=widgets.Label{frame={t=1,l=6}}
+    self.descriptionLabel=widgets.Label{frame={t=2,l=1}}
+    self.highlightPanel=widgets.Panel{
+        subviews={
+            widgets.Label{
+                text='Cost: ',
+                frame={t=1,l=1}
+            },
+            self.costLabel,
+            self.descriptionLabel
+        },
+        frame={t=0,r=1,w=20}
+    }
+    self:addviews{
+        widgets.FilteredList{
+            on_select=function(index,choice)
+                local choiceInfo=requisitionsTable[choice]
+                self.descriptionLabel:setText(choiceInfo.description)
+                self.costLabel:setText(choiceInfo.costLabel)
+            end,
+            on_enter=function(index,choice)
+                local choiceInfo=requisitionsTable[choice]
+                requisitionItem(choiceInfo.cost,choiceInfo.type,choiceInfo.subtype)
+            end
+        },
+        self.highlightPanel
+    }
+end
+
+function showRequisitionsView()
+    local requisitions=RequisitionView()
+    return requisitions:show()
 end
 
 ScipNetScreen = defclass(ScipNetscreen,gui.FramedScreen)
