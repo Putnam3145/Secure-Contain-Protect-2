@@ -134,7 +134,8 @@ SCPViewScreen.ATTRS={
     on_enter=DEFAULT_NIL,
     type=DEFAULT_NIL, -- "creature" or "item"
     designation=DEFAULT_NIL, -- raw ID of SCP
-    caste='DEFAULT'
+    caste='DEFAULT',
+    mat={0,0} --refers to mat type and subtype OR index; in short, dfhack.matinfo.find has you covered. Should be iron by default unless I put something that comes before it.
 }
 
 function SCPViewScreen:renderSubviews(dc)
@@ -213,7 +214,7 @@ function SCPViewScreen:init()
             graphic='OFFER_TO_CONTAIN_LOGO',
             label='Offer to contain this SCP',
             on_click=function()
-                offerToContain(self.cost,self.type,self.designation,self.caste)
+                offerToContain(self.cost,self.type,self.designation,self.subdesignation,self.mat)
             end,
             frame={t=1,l=9}
         },
