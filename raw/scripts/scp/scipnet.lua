@@ -12,11 +12,13 @@ Button.ATTRS={
 
 function Button:preUpdateLayout()
     self.frame=self.frame or {}
+    if not self.page then self.frame.w=0 self.frame.h=0 return end
     self.frame.w=self.page.page_dim_x
     self.frame.h=self.page.page_dim_y
 end
 
 function Button:onRenderBody(dc)
+    if not self.page then return end
     for k,v in ipairs(self.page.texpos) do
         dc:seek(k%self.frame.w,math.floor(k/self.frame.w)):tile(32,v)
     end
@@ -29,6 +31,7 @@ function Button:onInput(keys)
 end
 
 function Button:init(args)
+    if not self.graphic then return end
     for k,v in ipairs(df.global.texture.page) do
         if v.token==self.graphic then self.page=v return end
     end
@@ -134,7 +137,7 @@ SCPViewScreen.ATTRS={
     on_enter=DEFAULT_NIL,
     type=DEFAULT_NIL, -- "creature" or "item"
     designation=DEFAULT_NIL, -- raw ID of SCP
-    caste='DEFAULT',
+    subdesignation='DEFAULT',
     mat={0,0} --refers to mat type and subtype OR index; in short, dfhack.matinfo.find has you covered. Should be iron by default unless I put something that comes before it.
 }
 
@@ -157,42 +160,65 @@ function firstCitizenFound()
     end
 end
 
+local function findItemID(itemName)
+    for k,v in ipairs(df.global.world.raws.itemdefs.all) do
+        if v.id==itemName then return v.subtype end
+    end
+end
+
+local function getRaceID(creatureName)
+    for k,v in ipairs(df.global.world.raws.creatures.all) do
+        if v.creature_id==creatureName then return k end
+    end
+end
+
+local function getCaste(creatureRaw,casteName)
+    for k,v in ipairs(creatureRaw.caste) do
+        if v.caste_id==casteName then return k end
+    end
+end
+
 function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
     local resources=dfhack.script_environment('scp/resources')
     local site=df.global.ui.site_id
-    local confidenceAmount=resources.getResourceAmount(site,'confidence')
-    if dfhack.persistent.get('SCP_ALREADY_HERE/'..site) then return false end
-    if confidenceAmount>cost then
-        local creditSpendSuccessful=resources.adjustResource(site,'credits',cost,true)
-        if creditSpendSuccessful then
-            if scp_type=='creature' then
-                local teleportPos
-                for k,v in ipairs(df.global.world.buildings.other.WORKSHOP_CUSTOM) do
-                    local customWorkshopType=df.building_def.find(v.custom_type)
-                    if customWorkshopType.code=='SCP_WELCOMING_STATION' then
-                        teleportPos={x=v.x1,y=v.y1,z=v.z}
-                        break
-                    end
+    local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',cost,true)
+    if dfhack.persistent.get('SCP_ALREADY_HERE/'..site) and false then 
+        local dlg=require('gui.dialogs')
+        dlg.showMessage('SCiPNET message','You cannot contain an SCP twice.')
+        return false
+    end
+    if confidenceSpendSuccesful then
+        if scp_type=='creature' then
+            local teleportPos
+            for k,v in ipairs(df.global.world.buildings.other.WORKSHOP_CUSTOM) do
+                local customWorkshopType=df.building_def.find(v.custom_type)
+                if customWorkshopType.code=='SCP_WELCOMING_STATION' then
+                    teleportPos={x=v.x1,y=v.y1,z=v.z}
+                    break
                 end
-                if not teleportPos then
-                    local dlg=require('gui.dialogs')
-                    dlg.showMessage('SCiPNET message','You have not built a station to accept that SCP.')
-                    return
-                end
-                local createUnit=dfhack.script_environment('scp/create-unit').createUnit
-                local newUnit=createUnit(scp_designation,scp_caste)
-                dfhack.persistent.save({key='DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..newUnit.id,ints={math.abs(cost*2)}})
-                local teleport = dfhack.script_environment('teleport')
-                teleport.teleport(newUnit,teleportPos)
-                resources.adjustResource(site,'delta_confidence',cost/10)
-            elseif scp_type=='item' then
-                local citizen=firstCitizenFound()
-                dfhack.items.createItem(scp_subdesignation, scp_designation, mat[1], mat[2],citizen)
-                dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=false,PAUSE=true},citizen.pos,scp_designation..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true)
             end
-        else
-            local dlg=require('gui.dialogs')
-            dlg.showMessage('SCiPNET message','You do not have enough credits to accept that SCP.')
+            if not teleportPos then
+                local dlg=require('gui.dialogs')
+                dlg.showMessage('SCiPNET message','You have not built a station to accept that SCP.')
+                return
+            end
+            local createUnit=dfhack.script_environment('scp/create-unit').createUnit
+            local creatureType=getRaceID(scp_designation)
+            local newUnit=createUnit(creatureType,getCaste(df.creature_raw.find(creatureType),scp_subdesignation))
+            dfhack.persistent.save({key='DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..newUnit,ints={math.abs(cost*2)}})
+            local teleport = dfhack.script_environment('scp/teleport')
+            teleport.teleport(df.unit.find(newUnit),teleportPos)
+            resources.adjustResource(site,'delta_confidence',cost/10)
+            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},teleportPos,scp_designation..' delivered to '..'this location.',COLOR_GREEN,true) end)
+        elseif scp_type=='item' then
+            local citizen=firstCitizenFound()
+            local itemtype=findItemID(scp_designation)
+            local success,errormsg=pcall(function() dfhack.items.createItem(df.item_type[scp_subdesignation], itemtype, mat[1], mat[2],citizen) end)
+            if not success then
+                print(df.item_type[scp_subdesignation],scp_subdesignation,findItemID(scp_designation),scp_designation,mat[1],mat[2],citizen)
+                error(errormsg)
+            end
+            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},citizen.pos,itemtype.name..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true) end)
         end
     else
         local dlg=require('gui.dialogs')
@@ -207,7 +233,7 @@ function SCPViewScreen:init()
             label='View SCP Description',
             on_click=function()
                 SCPTextViewer{description=self.description}:show()
-            end,
+           end,
             frame={t=1,l=1}
         },
         Button{
@@ -345,7 +371,7 @@ local function getMatFilter(itemtype)
     return (mat.flags.LEATHER)
    end
   }
-  return itemTypes[df.item_type[itemtype]] and or getRestrictiveMatFilter(itemtype)
+  return itemTypes[df.item_type[itemtype]] or getRestrictiveMatFilter(itemtype)
 end
 
 local function showMaterialPrompt(title, prompt, filter, inorganic, creature, plant) --the one included with DFHack doesn't have a filter or the inorganic, creature, plant things available
@@ -367,16 +393,23 @@ end
 requisitionsTable=dfhack.script_environment('scp/requisitions_list').requisitions
 
 function requisitionItem(cost,itemtype,itemsubtype)
-    local script=require('gui.script')
-    script.start(function()
-        local specificmatFilter=getMatFilter(itemtype)
-        local matFilter=function(mat,parent,typ,idx)
-            return not mat.flags.SPECIAL and specificmatFilter(mat,parent,typ,idx)
-        end
-        local matok,mattype,matindex=showMaterialPrompt('Requisitions','Choose a material',matFilter,true,false,false)
-        local unit=firstCitizenFound()
-        dfhack.items.createItem(itemtype, itemsubtype, mattype, matindex, unit)
-    end)
+    local resources=dfhack.script_environment('scp/resources')
+    local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',cost,true)
+    if confidenceSpendSuccesful then
+        local script=require('gui.script')
+        script.start(function()
+            local specificmatFilter=getMatFilter(itemtype)
+            local matFilter=function(mat,parent,typ,idx)
+                return not mat.flags.SPECIAL and specificmatFilter(mat,parent,typ,idx)
+            end
+            local matok,mattype,matindex=showMaterialPrompt('Requisitions','Choose a material',matFilter,true,false,false)
+            local unit=firstCitizenFound()
+            dfhack.items.createItem(itemtype, itemsubtype, mattype, matindex, unit)
+        end)
+    else
+        local dlg=require('gui.dialogs')
+        dlg.showMessage('SCiPNET message','We are not confident enough in your containment abilities to grant that request.')
+    end
 end
 
 RequisitionView=defclass(RequisitionView,gui.FramedScreen)

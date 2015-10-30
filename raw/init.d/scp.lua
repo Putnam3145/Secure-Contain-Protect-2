@@ -9,6 +9,8 @@ local eraseReport = function(unit,report)
  end
 end
 
+local attackStrFuncs={}
+
 local defendStrFuncs={}
 
 local seenFuncs={}
@@ -68,6 +70,8 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
     function scipNetScreen:onInput(keys)
         if keys.SELECT then
             dfhack.run_script('scp/scipnet')
+        elseif keys.LEAVESCREEN then
+            self:dismiss()
         else
             self:inputToSubviews(keys)
             self:sendInputToParent(keys)
@@ -87,6 +91,7 @@ end
 eventful.onUnitDeath.scp=function(unit_id)
 	local confidence_drop=dfhack.persistent.get('DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..unit_id)
 	if confidence_drop then
+        local site_id=df.global.ui.site_id
 		local resource=dfhack.script_environment('scp/resources')
 		resource.adjustResource(site_id,'confidence',confidence_drop.ints[1])
 		resource.adjustResource(site_id,'delta_confidence',math.floor((-confidence_drop.ints[1]/20)+.5))
@@ -96,7 +101,7 @@ end
 eventful.enableEvent(eventful.eventType.UNIT_DEATH,5)
 
 local function increaseConfidence()
-	if df.global.gamemode=df.game_mode.DWARF and ((math.floor(df.global.cur_year_tick)/1200)-1)%28==0 then --rounds year tick to nearest day, makes it count from 0, checks if first day of month
+	if df.global.gamemode==df.game_mode.DWARF and ((math.floor(df.global.cur_year_tick)/1200)-1)%28==0 then --rounds year tick to nearest day, makes it count from 0, checks if first day of month
 		local resource=dfhack.script_environment('scp/resources')
 		local site_id=df.global.ui.site_id
 		local delta_confidence=resource.getResourceAmount(site_id,'delta_confidence')
