@@ -465,6 +465,13 @@ function RequisitionView:init()
     }
 end
 
+function RequisitionView:onInput(keys)
+    if keys.LEAVESCREEN then
+        self:dismiss()
+    end
+    self:inputToSubviews(keys)
+end
+
 function showRequisitionsView()
     local requisitions=RequisitionView()
     return requisitions:show()
