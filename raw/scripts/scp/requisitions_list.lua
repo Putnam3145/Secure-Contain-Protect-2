@@ -1,5 +1,16 @@
 requisitions={}
 
+requisitions.generate=function(self)
+    local generated_list={}
+    for k,v in pairs(self) do
+        if type(v)=='table' then
+            table.insert(generated_list,k)
+        end
+    end
+    table.sort(generated_list)
+    return generated_list
+end
+
 requisitions['rifle']={
     description='A tool to shoot small projectiles at very high speeds.',
     cost=5,
@@ -17,7 +28,7 @@ requisitions['body armor']={
 }
 
 requisitions['rifle ammo']={
-    description='A tool to shoot small projectiles at very high speeds.',
+    description='A small projectile to be shot at high speed.',
     cost=0.1,
     type='AMMO',
     subtype='RIFLE_AMMO_SCP',

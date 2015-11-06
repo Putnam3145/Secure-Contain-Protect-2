@@ -218,7 +218,7 @@ function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
                 print(df.item_type[scp_subdesignation],scp_subdesignation,findItemID(scp_designation),scp_designation,mat[1],mat[2],citizen)
                 error(errormsg)
             end
-            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},citizen.pos,itemtype.name..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true) end)
+            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},citizen.pos,scp_designation..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true) end)
         end
     else
         local dlg=require('gui.dialogs')
@@ -269,11 +269,11 @@ SCPList=defclass(SCPList,gui.FramedScreen)
 function SCPList:init()
     self:addviews{
         widgets.FilteredList{
-            choices={
-                'SCP-117',
-                'SCP-173',
-            },
+            choices=skips:generate(),
             on_submit=function(index,choice)
+                if not choice then
+                    SCPViewScreen{picture='SCP-S'}
+                end
                 SCPViewScreen(skips[choice.text]):show()
             end
         }
@@ -394,8 +394,10 @@ requisitionsTable=dfhack.script_environment('scp/requisitions_list').requisition
 
 function requisitionItem(cost,itemtype,itemsubtype,mat,quantity)
     local resources=dfhack.script_environment('scp/resources')
-    local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',cost,true)
+    local confidenceSpendSuccesful=resources.adjustResource(df.global.ui.site_id,'confidence',cost,true)
+    print('tested confidence')
     if confidenceSpendSuccesful then
+        print('succesful')
         if mat then
             if type(mat)=='string' then
                 local matinfo=dfhack.matinfo.find(mat)
@@ -447,19 +449,26 @@ function RequisitionView:init()
             self.costLabel,
             self.descriptionLabel
         },
-        frame={t=0,r=1,w=20}
+        frame={t=0,r=1,w=40}
     }
     self:addviews{
         widgets.FilteredList{
+            choices=requisitionsTable:generate(),
             on_select=function(index,choice)
-                local choiceInfo=requisitionsTable[choice]
-                self.descriptionLabel:setText(choiceInfo.description)
-                self.costLabel:setText(choiceInfo.cost)
+                if not choice then return end
+                local properChoice=type(choice)=='string' and choice or choice.text
+                local choiceInfo=requisitionsTable[properChoice]
+                local description=table.concat(wordWrapString(choiceInfo.description,40),"\n")
+                self.descriptionLabel:setText(description)
+                self.costLabel:setText(tostring(choiceInfo.cost))
             end,
-            on_enter=function(index,choice)
-                local choiceInfo=requisitionsTable[choice]
-                requisitionItem(choiceInfo.cost,df.item_type[choiceInfo.type],findItemID(choiceInfo.subtype),choiceinfo.mat)
-            end
+            on_submit=function(index,choice)
+                if not choice then return end
+                local properChoice=type(choice)=='string' and choice or choice.text
+                local choiceInfo=requisitionsTable[properChoice]
+                requisitionItem(choiceInfo.cost,df.item_type[choiceInfo.type],findItemID(choiceInfo.subtype),choiceInfo.mat,choiceInfo.quantity)
+            end,
+            edit_below=true
         },
         self.highlightPanel
     }
