@@ -63,7 +63,7 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
         self.building=dfhack.gui.getSelectedBuilding()
     end
     function scipNetScreen:onRenderBody(dc)
-        dc:seek(1,1):string('Press the '):key('SELECT'):string(' key to access SCiPNET')
+        dc:seek(1,1):string('Press the '):key('SELECT'):string(' key to access\n SCiPNET')
         local selectedBuilding=dfhack.gui.getSelectedBuilding()
         if not selectedBuilding or selectedBuilding~=self.building then self:dismiss() end
     end

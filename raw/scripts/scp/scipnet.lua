@@ -392,20 +392,41 @@ end
 
 requisitionsTable=dfhack.script_environment('scp/requisitions_list').requisitions
 
-function requisitionItem(cost,itemtype,itemsubtype)
+function requisitionItem(cost,itemtype,itemsubtype,mat,quantity)
     local resources=dfhack.script_environment('scp/resources')
     local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',cost,true)
     if confidenceSpendSuccesful then
-        local script=require('gui.script')
-        script.start(function()
-            local specificmatFilter=getMatFilter(itemtype)
-            local matFilter=function(mat,parent,typ,idx)
-                return not mat.flags.SPECIAL and specificmatFilter(mat,parent,typ,idx)
+        if mat then
+            if type(mat)=='string' then
+                local matinfo=dfhack.matinfo.find(mat)
+                local unit=firstCitizenFound()
+                if quantity then
+                    if df.item_type.attrs[itemtype].is_stackable then
+                        local item=dfhack.items.createItem(itemtype, itemsubtype, matinfo.type, matinfo.index, unit)
+                        df.item.find(item):setStackSize(quantity)
+                    else
+                        for i=1,quantity do
+                            dfhack.items.createItem(itemtype, itemsubtype, matinfo.type, matinfo.index, unit)
+                        end
+                    end
+                else
+                    dfhack.items.createItem(itemtype, itemsubtype, matinfo.type, matinfo.index, unit)
+                end
+            else
+                qerror('TODO: add non-string mat specifications; if you see this error, Putnam messed up')
             end
-            local matok,mattype,matindex=showMaterialPrompt('Requisitions','Choose a material',matFilter,true,false,false)
-            local unit=firstCitizenFound()
-            dfhack.items.createItem(itemtype, itemsubtype, mattype, matindex, unit)
-        end)
+        else
+            local script=require('gui.script')
+            script.start(function()
+                local specificmatFilter=getMatFilter(itemtype)
+                local matFilter=function(mat,parent,typ,idx)
+                    return not mat.flags.SPECIAL and specificmatFilter(mat,parent,typ,idx)
+                end
+                local matok,mattype,matindex=showMaterialPrompt('Requisitions','Choose a material',matFilter,true,false,false)
+                local unit=firstCitizenFound()
+                dfhack.items.createItem(itemtype, itemsubtype, mattype, matindex, unit)
+            end)
+        end
     else
         local dlg=require('gui.dialogs')
         dlg.showMessage('SCiPNET message','We are not confident enough in your containment abilities to grant that request.')
@@ -433,11 +454,11 @@ function RequisitionView:init()
             on_select=function(index,choice)
                 local choiceInfo=requisitionsTable[choice]
                 self.descriptionLabel:setText(choiceInfo.description)
-                self.costLabel:setText(choiceInfo.costLabel)
+                self.costLabel:setText(choiceInfo.cost)
             end,
             on_enter=function(index,choice)
                 local choiceInfo=requisitionsTable[choice]
-                requisitionItem(choiceInfo.cost,choiceInfo.type,choiceInfo.subtype)
+                requisitionItem(choiceInfo.cost,df.item_type[choiceInfo.type],findItemID(choiceInfo.subtype),choiceinfo.mat)
             end
         },
         self.highlightPanel
@@ -485,9 +506,7 @@ function ScipNetScreen:init()
             graphic='BANKNOTE',
             label='Requisitions',
             on_click=function()
-                --[[
                 showRequisitionsView()
-                ]]
             end,
             frame={t=1,l=5}
         },

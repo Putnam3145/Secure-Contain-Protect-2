@@ -26,7 +26,7 @@ Note from Dr. Putnam: Can't get through metal doors. Keep at least two people on
     cost=-250,
     picture="SCP_173",
     type='creature',
-    designation='SCP_173'
+    designation='SCP_173',
     subdesignation='UNFROZEN'
 }
 
