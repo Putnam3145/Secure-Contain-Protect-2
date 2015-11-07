@@ -22,6 +22,10 @@ skips.generate=function(self)
     return generated_list
 end
 
+--[[
+The descriptions should be a game manual first, SCP article second, but I'd rather they stick with the tone of the site.
+]]
+
 skips['SCP-173']={
     description=string.format([[Item #: SCP-173
 
