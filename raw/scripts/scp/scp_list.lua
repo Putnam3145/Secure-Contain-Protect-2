@@ -27,6 +27,8 @@ The descriptions should be a game manual first, SCP article second, but I'd rath
 ]]
 
 skips['SCP-173']={
+--Author of SCP-173 Moto42
+--Article: http://www.scp-wiki.net/scp-173
     description=string.format([[Item #: SCP-173
 
 Object Class: Euclid
@@ -46,6 +48,8 @@ Addendum: The CK class restructuring event %s %s ago caused new behavior in SCP-
 }
 
 skips['SCP-117']={
+--Author of SCP-117 ??? (far2 earliest edit, but could easily be due to the EditThis move)
+--Article: http://www.scp-wiki.net/scp-117
     description=string.format([[Item #: SCP-117
 
 Object Class: Safe
