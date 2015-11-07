@@ -33,7 +33,7 @@ Description: Moved to Site-19 1993. Origin is as of yet unknown. It is construct
 Personnel report sounds of scraping stone originating from within the container when no one is present inside. This is considered normal, and any change in this behaviour should be reported to the acting HMCL supervisor on duty.
 The reddish brown substance on the floor is a combination of feces and blood. Origin of these materials is unknown. The enclosure must be cleaned on a bi-weekly basis.
 
-Addendum: Ever since the CK class restructuring event %s %s ago, it can heal itself when it is looked upon or unobserved due to a body transformation.]],tostring(df.global.cur_year),df.global.cur_year>1 and "years" or "year"),
+Addendum: The CK class restructuring event %s %s ago caused new behavior in SCP-173; it will heal itself when looked upon or unobserved. The exact reason for this behavior is unknown.]],tostring(df.global.cur_year),df.global.cur_year>1 and "years" or "year"),
     cost=-250,
     picture="SCP_173",
     type='creature',
@@ -48,7 +48,7 @@ Object Class: Safe
 
 Special Containment Procedures: SCP-117 is to be kept in a secure location. Guards should be posted at this location to prevent theft.
 
-Description: The CK-class event %s %s ago completely changed the operation of the object. While the item formerly appeared to be a regular multitool of unknown make and brand, as of now it appears to be simply a tool, just one that can do everything tools are capable of doing, a surprisingly limited list from what has been determined in research on the event:
+Description: The CK-class event %s %s ago completely changed the behavior of the object. While the item formerly appeared to be a regular multitool of unknown make and brand, as of now it appears to be simply a tool, albeit one that can do everything tools are capable of doing. Testing has determined that this encompasses all of:
 
   Various kitchen knife behaviors (carving, slicing, boning, cleaving)
   Cooking liquids
@@ -61,11 +61,11 @@ Description: The CK-class event %s %s ago completely changed the operation of th
   Storing food
   Insect hives
   Small object storage
-  Container on wheels (for use with track)
-  Container on wheels (for pushing)
+  Wheeled container (track or pushed)
   Reaching high places
   
-It no longer has the harmful effects on wielding nor does it appear to have any intelligence; it is simply the most versatile tool possible, no more and no less. The only apparent connection with the former item designated SCP-117 is the idea of a "complete multitool"; the primary reason this item is given the same designation is that the former SCP-117 was gone and this item was found in its place.]],tostring(df.global.cur_year),df.global.cur_year>1 and "years" or "year"),
+Note from Researcher Putnam: Object no longer has the harmful effects on wielding nor does it appear to have any intelligence; it is simply the most versatile tool possible. The former item designated SCP-117 and this item both fit "complete multitool" and the former SCP-117 disappeared with this item in its place; this seems to imply that the two items are one in the same, but assuming that would not be good. The designation of this object as SCP-117 is more related to the disappearance of the original than the appearance of this one.]],tostring(df.global.cur_year),df.global.cur_year>1 and "years" or "year"), 
+--it's the same object, the ck-class event just did some weird stuff, the foundation is skeptical because not being skeptical is a very bad idea for something such as this. SCP-117 is mostly in the mod because it's an easy implementation, heh.
     cost=100,
     type='item',
     designation='SCP_117',
