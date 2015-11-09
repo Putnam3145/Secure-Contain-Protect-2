@@ -1,5 +1,45 @@
 local eventful=require('plugins.eventful')
 
+local widgets=require('gui.widgets')
+
+local gui=require('gui')
+
+Button=defclass(Button,widgets.Widget)
+
+Button.ATTRS={
+    on_click = DEFAULT_NIL,
+    graphic = DEFAULT_NIL, --refers to the name of a tilepage
+    label = DEFAULT_NIL
+}
+
+function Button:preUpdateLayout()
+    self.frame=self.frame or {}
+    if not self.page then self.frame.w=0 self.frame.h=0 return end
+    self.frame.w=self.page.page_dim_x
+    self.frame.h=self.page.page_dim_y
+end
+
+function Button:onRenderBody(dc)
+    if not self.page then return end
+    for k,v in ipairs(self.page.texpos) do
+        dc:seek(k%self.frame.w,math.floor(k/self.frame.w)):tile(32,v)
+    end
+end
+
+function Button:onInput(keys)
+    if keys._MOUSE_L_DOWN and self:getMousePos() and self.on_click then
+        self.on_click()
+    end
+end
+
+function Button:init(args)
+    if not self.graphic then return end
+    for k,v in ipairs(df.global.texture.page) do
+        if v.token==self.graphic then self.page=v return end
+    end
+    error('No tilepage found: '..self.graphic)
+end
+
 local eraseReport = function(unit,report)
  for i,v in ipairs(unit.reports.log.Combat) do
   if v == report then
@@ -59,18 +99,52 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
     local widgets=require('gui.widgets')
     callnative=false
     local scipNetScreen=defclass(scipNetScreen,guidm.MenuOverlay)
-    function scipNetScreen:init()
-        self.building=dfhack.gui.getSelectedBuilding()
+    function scipNetScreen:renderSubviews(dc)
+        local highlighted=false
+        for _,child in ipairs(self.subviews) do
+            if child:getMousePos() then self.subviews.highlight_label:setText(child.label) highlighted=true end
+            if child.visible then
+                child:render(dc)
+            end
+        end
+        if not highlighted then self.subviews.highlight_label:setText('Click an icon to continue.') end
     end
-    function scipNetScreen:onRenderBody(dc)
-        dc:seek(1,1):string('Press the '):key('SELECT'):string(' key to access\n SCiPNET')
-        local selectedBuilding=dfhack.gui.getSelectedBuilding()
-        if not selectedBuilding or selectedBuilding~=self.building then self:dismiss() end
+    function scipNetScreen:init()
+        self:addviews{
+            Button{
+                graphic='LEGENDS_BOOK',
+                label='Open Legends Mode',
+                on_click=function()
+                    local legends=dfhack.script_environment('scp/open-legends')
+                    legends.show()
+                end,
+                frame={t=1,l=1}
+            },
+            Button{
+                graphic='SCP_LOGO',
+                label='View SCPs',
+                on_click=function()
+                    dfhack.script_environment('scp/scipnet').showSCPView()
+                end,
+                frame={t=5,l=1}
+            },
+            Button{
+                graphic='BANKNOTE',
+                label='Requisitions',
+                on_click=function()
+                    dfhack.script_environment('scp/scipnet').showRequisitionsView()
+                end,
+                frame={t=1,l=5}
+            },
+            widgets.Label{
+                frame={b=1,l=1},
+                view_id='highlight_label',
+                text=' '
+            },
+        }
     end
     function scipNetScreen:onInput(keys)
-        if keys.SELECT then
-            dfhack.run_script('scp/scipnet')
-        elseif keys.LEAVESCREEN then
+        if keys.LEAVESCREEN then
             self:dismiss()
         else
             self:inputToSubviews(keys)
@@ -81,7 +155,7 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
 end
 
 eventful.onWorkshopFillSidebarMenu.scp=function(workshop,callnative)
-    if df.workshop_type[workshop.custom_type]=='Custom' then
+    if df.workshop_type[workshop.type]=='Custom' then
         local customWorkshopType=df.building_def.find(workshop.custom_type)
         local workshopFunc=workshopFuncs[customWorkshopType.code] or function() return end
         workshopFunc(workshop,callnative)

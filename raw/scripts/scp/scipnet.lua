@@ -2,7 +2,7 @@ local widgets=require('gui.widgets')
 
 local gui=require('gui')
 
-Button=defclass(Button,widgets.Widget)
+local Button=defclass(Button,widgets.Widget)
 
 Button.ATTRS={
     on_click = DEFAULT_NIL,
@@ -38,13 +38,13 @@ function Button:init(args)
     error('No tilepage found: '..self.graphic)
 end
 
-SCPTextViewer=defclass(SCPTextViewer,gui.FramedScreen)
+local SCPTextViewer=defclass(SCPTextViewer,gui.FramedScreen)
 
 SCPTextViewer.ATTRS={
     description="",
 }
 
-function lineBreakTableString(str)
+local function lineBreakTableString(str)
     local prevBreak=1
     local str_list={}
     for i=1,str:len() do
@@ -57,7 +57,7 @@ function lineBreakTableString(str)
     return str_list
 end
 
-function wordWrapString(str,limit)
+local function wordWrapString(str,limit)
     local words=str:gmatch("%g+")
     local cur_string=""
     local prev_string=""
@@ -74,7 +74,7 @@ function wordWrapString(str,limit)
     return str_list
 end
 
-function separateString(str,limit)
+local function separateString(str,limit)
     local str_list={}
     local lineBrokenStrs=lineBreakTableString(str)
     for k,v in ipairs(lineBrokenStrs) do
@@ -126,9 +126,9 @@ function SCPTextViewer:onInput(keys)
     end
 end
 
-skips=dfhack.script_environment('scp/scp_list').skips
+local skips=dfhack.script_environment('scp/scp_list').skips
 
-SCPViewScreen=defclass(SCPViewScreen,gui.FramedScreen)
+local SCPViewScreen=defclass(SCPViewScreen,gui.FramedScreen)
 
 SCPViewScreen.ATTRS={
     description="",
@@ -152,7 +152,7 @@ function SCPViewScreen:renderSubviews(dc)
     if not highlighted then self.subviews.highlight_label:setText('') end
 end
 
-function firstCitizenFound()
+local function firstCitizenFound()
     for k,v in ipairs(df.global.world.units.active) do
         if dfhack.units.isCitizen(v) and dfhack.units.isAlive(v) then
             return v
@@ -178,7 +178,7 @@ local function getCaste(creatureRaw,casteName)
     end
 end
 
-function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
+local function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
     local resources=dfhack.script_environment('scp/resources')
     local site=df.global.ui.site_id
     local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',cost,true)
@@ -232,6 +232,10 @@ function SCPViewScreen:init()
             graphic='DESCRIPTION_LOGO',
             label='View SCP Description',
             on_click=function()
+                if not self.description then
+                    SCPTextViewer{description='No data found.'}:show()
+                    return false
+                end
                 SCPTextViewer{description=self.description}:show()
            end,
             frame={t=1,l=1}
@@ -240,6 +244,10 @@ function SCPViewScreen:init()
             graphic='OFFER_TO_CONTAIN_LOGO',
             label='Offer to contain this SCP',
             on_click=function()
+                if not self.type then
+                    --but nothing happened
+                    return false
+                end
                 offerToContain(self.cost,self.type,self.designation,self.subdesignation,self.mat)
             end,
             frame={t=1,l=9}
@@ -264,7 +272,7 @@ function SCPViewScreen:onInput(keys)
     self:inputToSubviews(keys)
 end
 
-SCPList=defclass(SCPList,gui.FramedScreen)
+local SCPList=defclass(SCPList,gui.FramedScreen)
 
 function SCPList:init()
     self:addviews{
@@ -272,7 +280,9 @@ function SCPList:init()
             choices=skips:generate(),
             on_submit=function(index,choice)
                 if not choice then
-                    SCPViewScreen{picture='SCP-S'}
+                    SCPViewScreen{picture='SCP_S'}:show() 
+                    --SCP-S by CryogenChaos
+                    --article: http://www.scp-wiki.net/scp-s
                 end
                 SCPViewScreen(skips[choice.text]):show()
             end
@@ -390,9 +400,9 @@ local function showMaterialPrompt(title, prompt, filter, inorganic, creature, pl
   return script.wait()
 end
 
-requisitionsTable=dfhack.script_environment('scp/requisitions_list').requisitions
+local requisitionsTable=dfhack.script_environment('scp/requisitions_list').requisitions
 
-function requisitionItem(cost,itemtype,itemsubtype,mat,quantity)
+local function requisitionItem(cost,itemtype,itemsubtype,mat,quantity)
     local resources=dfhack.script_environment('scp/resources')
     local confidenceSpendSuccesful=resources.adjustResource(df.global.ui.site_id,'confidence',cost,true)
     print('tested confidence')
@@ -435,7 +445,7 @@ function requisitionItem(cost,itemtype,itemsubtype,mat,quantity)
     end
 end
 
-RequisitionView=defclass(RequisitionView,gui.FramedScreen)
+local RequisitionView=defclass(RequisitionView,gui.FramedScreen)
 
 function RequisitionView:init()
     self.costLabel=widgets.Label{frame={t=1,l=6}}
@@ -485,62 +495,3 @@ function showRequisitionsView()
     local requisitions=RequisitionView()
     return requisitions:show()
 end
-
-ScipNetScreen = defclass(ScipNetscreen,gui.FramedScreen)
-
-function ScipNetScreen:renderSubviews(dc)
-    local highlighted=false
-    for _,child in ipairs(self.subviews) do
-        if child:getMousePos() then self.subviews.highlight_label:setText(child.label) highlighted=true end
-        if child.visible then
-            child:render(dc)
-        end
-    end
-    if not highlighted then self.subviews.highlight_label:setText('') end
-end
-
-function ScipNetScreen:init()
-    self:addviews{
-        Button{
-            graphic='LEGENDS_BOOK',
-            label='Open Legends Mode',
-            on_click=function()
-                local legends=dfhack.script_environment('scp/open-legends')
-                legends.show()
-            end,
-            frame={t=1,l=1}
-        },
-        Button{
-            graphic='SCP_LOGO',
-            label='View SCPs',
-            on_click=function()
-                showSCPView()
-            end,
-            frame={t=5,l=1}
-        },
-        Button{
-            graphic='BANKNOTE',
-            label='Requisitions',
-            on_click=function()
-                showRequisitionsView()
-            end,
-            frame={t=1,l=5}
-        },
-        widgets.Label{
-            frame={b=1,l=1},
-            view_id='highlight_label',
-            text=' '
-        },
-    }
-end
-
-function ScipNetScreen:onInput(keys)
-    if keys.LEAVESCREEN then
-        self:dismiss()
-    end
-    self:inputToSubviews(keys)
-end
-
-local scipnet=ScipNetScreen()
-
-scipnet:show()

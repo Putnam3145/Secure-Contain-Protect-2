@@ -18,7 +18,7 @@ graphics_scp_menu
 	[PAGE_DIM:8:8]
     
 [TILE_PAGE:SCP_173]
-    [FILE:scp/SCPS/scp-173.png]
+    [FILE:scp/SCPs/scp-173.png]
     [TILE_DIM:16:16]
     [PAGE_DIM:16:13]
     
@@ -36,6 +36,11 @@ graphics_scp_menu
     [FILE:scp/menu/exit-door.png]
     [TILE_DIM:16:16]
     [PAGE_DIM:8:8]
+    
+[TILE_PAGE:SCP_S]
+    [FILE:scp/SCPs/nothin to see here, insect.png]
+    [TILE_DIM:16:16]
+    [PAGE_DIM:16:16]
  
 [CREATURE_GRAPHICS:GRAPHICS_CREATURE_SCP]
  [DEFAULT:LEGENDS_BOOK:0:0:ADD_COLOR:DEFAULT]
@@ -45,3 +50,4 @@ graphics_scp_menu
  [CARPENTER:PICTURE_LOGO:0:0:ADD_COLOR:DEFAULT]
  [BOWYER:DESCRIPTION_LOGO:0:0:ADD_COLOR:DEFAULT]
  [WOODCUTTER:OFFER_TO_CONTAIN_LOGO:0:0:ADD_COLOR:DEFAULT]
+ [STONEWORKER:SCP_S:0:0:ADD_COLOR:DEFAULT]
