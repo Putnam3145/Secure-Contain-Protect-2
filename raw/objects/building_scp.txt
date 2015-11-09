@@ -3,7 +3,7 @@ building_scp
 [OBJECT:BUILDING]
 
 [BUILDING_WORKSHOP:SCP_NETWORK_ACCESSOR]
-    [NAME:SCiPNET direct access terminal]
+    [NAME:SCiPNET access terminal]
 	[DIM:1:2]
 	[BLOCK:1:1]
 	[BLOCK:2:0]
