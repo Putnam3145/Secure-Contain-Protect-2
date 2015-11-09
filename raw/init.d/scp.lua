@@ -141,6 +141,10 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
                 view_id='highlight_label',
                 text=' '
             },
+            widgets.Label{
+                frame={t=13,l=1},
+                text='The foundation currently has\n' .. dfhack.script_environment('scp/resources').getResourceAmount(df.global.ui.site_id,'confidence') .. ' confidence in you.'
+            }
         }
     end
     function scipNetScreen:onInput(keys)
