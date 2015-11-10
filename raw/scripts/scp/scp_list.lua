@@ -126,5 +126,5 @@ After constant testing showed SCP-458's seemingly infinite power to generate piz
     type='item',
     designation='458',
     subdesignation='TOY',
-    material={0,dfhack.matinfo.find('SIMPLE_CARDBOARD').index}
+    material={0,dfhack.matinfo.find('SIMPLE_CARDBOARD_SCP').index}
 }
