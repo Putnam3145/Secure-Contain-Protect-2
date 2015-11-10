@@ -201,4 +201,162 @@ end
 
 local repeat_util=require('repeat-util')
 
-repeat_util.scheduleEvery('monthly_confidence_boost',600,'ticks',increaseConfidence)
+repeat_util.scheduleEvery('monthly_confidence_boost',605,'ticks',increaseConfidence)
+
+----------------------------------------
+--------------- SCP-294 ----------------
+----------------------------------------
+
+function cleanString(str)
+    if not str then return '' end
+    return str:lower():gsub('%W','')
+end
+
+function desperatelyAttemptToMatchStrings(str1,str2)
+    if not str1 or not str2 then return false end
+    return cleanString(str1):find(cleanString(str2)) or cleanString(str2):find(cleanString(str1))
+end
+
+function findPlant(str,desparate)
+    --ugly ugly function, but this whole script is ugly
+    if desparate then
+        for k,v in ipairs(df.global.world.raws.plants.all) do
+            if desperatelyAttemptToMatchStrings(str,v.id) or desperatelyAttemptToMatchStrings(str,v.name) then return {v,'plant'} end
+        end
+    else
+        for k,v in ipairs(df.global.world.raws.plants.all) do
+            if cleanString(str)==cleanString(v.id) or cleanString(v.name)==cleanString(str) then return {v,'plant'} end
+        end
+    end
+    return {false,nil}
+end
+
+function findCreature(str,desparate)
+    if desparate then
+        for k,v in ipairs(df.global.world.raws.creatures.all) do
+            if desperatelyAttemptToMatchStrings(str,v.creature_id) or desperatelyAttemptToMatchStrings(str,v.name[0]) then return {v,'creature'} end
+        end
+    else
+        for k,v in ipairs(df.global.world.raws.creatures.all) do
+            if cleanString(str)==cleanString(v.creature_id) then return {v,'creature'} end --the name equality is handled by the binsearch
+        end
+    end
+    return {false,nil}
+end
+
+function findMaterialGivenPlainLanguageString(str)
+    --not going to include odd substances :I
+    local str=str:gsub("'",''):gsub('"','')
+    local tokenStr=string.upper(str:gsub(' ','_'))
+    local moddedString=tokenStr:gsub('_',':')
+    for i=1,2 do
+        if i==1 then
+            moddedString='CREATURE:'..moddedString
+        else
+            moddedString='PLANT:'..moddedString
+        end
+        local find=dfhack.matinfo.find(tokenStr) or dfhack.matinfo.find(moddedString)
+        if find then return find.type,find.index end
+    end
+    str=string.lower(str:gsub('_',' ')) --making sure it's all nice for the ugly part
+    --this is the ugly part
+    local utils=require('utils')
+    local foundMatchingObject={}
+    for word in str:gmatch('%a+') do
+        --first, we search for an object, starting with a binsearch followed by a plant search followed by a creature search using a different creature identifier followed by a couple of nasty desperate searches.
+        local binsearchResult={utils.binsearch(df.global.world.raws.creatures.alphabetic,string.lower(word),'name',utils.compare_field_key(0))}
+        foundMatchingObject=foundMatchingObject[1]==true and foundMatchingObject or binsearchResult[2]==true and binsearchResult or findPlant(word) or findCreature(word) or findPlant(word,true) or findCreature(word,true)
+        if foundMatchingObject[1]==true then
+            for k,v in ipairs(foundMatchingObject[1].material) do --then we desperately try to find a material that matches the object.
+                if desperatelyAttemptToMatchStrings(word,v.id) or desperatelyAttemptToMatchStrings(word,v.state_name.Liquid) or desperatelyAttemptToMatchStrings(word,v.state_name.Solid) or 
+                desperatelyAttemptToMatchStrings(str,v.id) or desperatelyAttemptToMatchStrings(str,v.state_name.Liquid) or desperatelyAttemptToMatchStrings(str,v.state_name.Solid) then
+                    if v.heat.melting_point~=60001 then
+                        if foundMatchingObject[2]==true or foundMatchingObject[2]=='creature' then
+                            local find = dfhack.matinfo.find('CREATURE:'..foundMatchingObject[1].creature_id..':'..v.id) --splitting the string doesn't work right now
+                            return find.type,find.index
+                        elseif foundMatchingObject[2]=='plant' then
+                            local find = dfhack.matinfo.find('PLANT:'..foundMatchingObject[1].id..':'..v.id)
+                            return find.type,find.index
+                        else
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return false,false
+end
+
+local script=require('gui.script')
+
+function SCP_294(reaction,unit,input_items,input_reagents,output_items,call_native)
+    script.start(function()
+        local mattype,matindex
+        repeat
+            local tryAgain
+            local ok,matString=script.showInputPrompt('SCP-294','Select your drink.',COLOR_LIGHTGREEN)
+            if ok then
+                mattype,matindex=findMaterialGivenPlainLanguageString(matString)
+            end
+            if not mattype then
+                script.showMessage('SCP-294','OUT OF RANGE',COLOR_LIGHTGREEN)
+                tryAgain=script.showYesNoPrompt('SCP-294','TRY AGAIN?',COLOR_LIGHTGREEN)
+            end
+        until not tryAgain or mattype
+        if mattype then
+            for k,v in ipairs(df.global.world.raws.reactions) do
+                if v.code:find('SCP_294_DISPENSE') then
+                    for _,product in ipairs(v.products) do
+                        if product.product_to_container=='container' then
+                            product.mat_type=mattype
+                            product.mat_index=matindex
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+eventful.registerReaction('LUA_HOOK_SCP_294_SELECT_LIQUID_FOR_DISPENSING',SCP_294)
+
+local function getPizza()
+    for k,v in ipairs(df.global.world.raws.itemdefs.food) do
+        if v.id=='458_PIZZA' then return v.subtype end
+    end
+end
+
+function SCP_458(reaction,unit,input_items,input_reagents,output_items,call_native)
+    local mattype,matindex
+    for k,preference in ipairs(unit.status.current_soul.preferences) do
+        if not preference then call_native=false return nil end
+        if preference.type==2 and dfhack.matinfo.decode(preference.mattype,preference.matindex) and dfhack.matinfo.decode(preference.mattype,preference.matindex).material.heat.melting_point>10020 then
+            mattype,matindex=preference.mattype,preference.matindex
+            break
+        end
+    end
+    if mattype then
+        for k,v in ipairs(df.global.world.raws.reactions) do
+            if v.code:find('SCP_458_GENERATE_PIZZA') then
+                for _,product in ipairs(v.products) do
+                    product.mat_type=mattype
+                    product.mat_index=matindex
+                    product.item_type=df.item_type['FOOD'] --lol this and the below line were hardcoded magic numbers
+                    product.item_subtype=getPizza()
+                end
+            end
+        end
+    else
+        call_native=false
+    end
+end
+
+eventful.enableEvent(eventful.eventType.ITEM_CREATED,1) --I don't see any linear searches through entire vectors, so it should be fine
+
+eventful.onItemCreated.SCP_458=function(item_id)
+    local item=df.item.find(item_id)
+    if not df.item_foodst:is_instance(item) or item.subtype.id~='458_PIZZA' then return nil end
+    item.ingredients:insert('#',{new=df.item_foodst.T_ingredients,item_type=df.item_type.CHEESE})
+    item.ingredients:insert('#',{new=df.item_foodst.T_ingredients,item_type=df.item_type.CHEESE,mat_index=item.mat_index,mat_type=item.mat_type})
+end
+
+eventful.registerReaction('LUA_HOOK_SET_PIZZA_TYPE_458',SCP_458)

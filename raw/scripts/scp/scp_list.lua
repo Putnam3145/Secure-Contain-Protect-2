@@ -80,3 +80,51 @@ Note from Researcher Putnam: Object no longer has the harmful effects on wieldin
     subdesignation='TOOL',
     material={0,dfhack.matinfo.find('STEEL').index},
 }
+
+skips['SCP-294']={
+--Author of SCP-294 Arcibi 
+--Article: http://www.scp-wiki.net/scp-294
+    description=[[Item #: SCP-294
+
+Object Class: Euclid 
+
+Special Containment Procedures: There are no standard special containment procedures on file for Item SCP-294. However, only personnel of security clearance level 2 or higher are allowed to interact with it (see document SCP-294a). SCP-294 should be monitored by two guards of security clearance level 3 at all times.
+
+Description: Item SCP-294 appears to be a standard coffee vending machine, the only noticeable difference being an entry touchpad with buttons corresponding to an English QWERTY keyboard. Upon depositing fifty cents US currency into the coin slot, the user is prompted to enter the name of any liquid using the touchpad. Upon doing so, a standard 12-ounce paper drinking cup is placed and the liquid indicated is poured. Ninety-seven initial test runs were performed (including requests for water, coffee, beer, and soda, non-consumable liquids such as sulfuric acid, wiper fluid, and motor oil, as well as substances that do not usually exist in liquid state, such as nitrogen, iron and glass) and each one returned a success. Test runs with solid materials such as diamond have failed, however, as it appears that SCP-294 can only deliver substances that can exist in liquid state.
+
+It is of note that after approximately fifty uses, the machine would not respond to further requests. After a period of approximately 90 minutes, the machine seemed to have restocked itself. It is also interesting to note that many caustic liquids that would have eaten through a normal paper cup seemed to have no effect on the cups dispensed by the machine.
+
+Testing is ongoing. Following incident 294-01, guards were stationed at the item and a security clearance became necessary to interact with it.
+
+Document SCP-294a (regarding incident 294-01): On August 21, 2005, Agent Joseph ██████ attempted to use Item SCP-294 to obtain coffee during his allotted break time at 9:30 AM. At the request of Agent █████ █████████ "to see what it would do", ██████ requested "a cup of Joe" from the item. Moments after confirming the selection, Agent Joseph ██████ began to sweat profusely and complained of dizziness before collapsing. After moving the unconscious agent to the infirmary, the medical team recovered the contents of the cup dispensed by Item SCP-294: a combination of blood, tissue, and other bodily fluids. Testing revealed the DNA sequence of the biological material dispensed by SCP-294 matched that of Agent ██████.
+
+Agent ██████ made a complete recovery after four weeks of rest and intravenous hydration. X-rays and CAT scans showed no further signs of injury, and ██████ was released. Both agents were reprimanded. Additional security measures for SCP-294 have been recommended.]],
+    cost=300,
+    type='item',
+    designation='294',
+    subdesignation='TOY',
+    material={0,dfhack.matinfo.find('IRON').index},
+}
+
+skips['SCP-458']={
+--Author of SCP-458 Palhinuk
+--Article: http://www.scp-wiki.net/scp-458
+    description=[[Item: SCP-458  
+
+Object Class: Safe
+
+Special Containment Procedures: SCP-458 is considered safe and therefore is to be stored in the staff canteen at Site 17, with no access restrictions required.  
+
+Description: SCP-458 is a large-sized pizza box from the pizza chain Little Caesar's, of their Hot-n-Ready variety. It is made of simple cardboard, measures 25.4cmx25.4cmx2.54cm (10inx10inx1in), and weighs about 20 to 20.49 grams depending on toppings. As a result of the unusual nature of SCP-458, measurement of weight is inconsistent.
+
+What makes SCP-458 an oddity is that, while appearing to be an ordinary pizza box, when it comes into contact with human hands, it instantaneously replicates within it the holder's subconsciously preferred choice of pizza, down to favorite sauce, cheese, crust, and topping. It is not limited to the Little Caesars brand, as pizza from all major pizza chains, as well as local and even handmade pizzas have been produced. There seems to be no limit to its ability, except that it cannot make anything but pizza, and its toppings must be edible by normal human standards (see Addendum 1a). The box is also rather indestructible, as all tests to destroy or dismantle the box have proven fruitless.
+
+It is assumed the box is semi-sentient, having at least enough telepathic or empathetic ability to sense what the holder's personal choices regarding pizza are.
+
+After constant testing showed SCP-458's seemingly infinite power to generate pizza (but with little other use), it has henceforth been placed inside the canteen at Site-17 for free use by personnel. After its open usage has been allowed, personnel morale has shown to have sharply increased.]],
+    cost=500,
+    type='item',
+    designation='458',
+    subdesignation='TOY',
+    material={0,dfhack.matinfo.find('SIMPLE_CARDBOARD').index}
+}

@@ -1,0 +1,7 @@
+item_food_scp
+
+[OBJECT:ITEM]
+
+[ITEM_FOOD:458_PIZZA]
+[NAME:pizza]
+[LEVEL:2]
