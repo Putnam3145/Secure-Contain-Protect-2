@@ -9,4 +9,5 @@ but you've read the survival manuals. Just follow your directions
 and you'll get through this. You've heard
 about all of the [VAR:NAME_PLURAL:GLOBAL:LOCAL_LARGE_PREDATOR] around here, but those are just animals.
 You have much worse to worry about than animals.
-A new tale of the Foundation's efforts begin here at this place, [VAR:NATIVENAME:GLOBAL:YOURFORT], "[VAR:TRANSLATEDNAME:GLOBAL:YOURFORT]". Set up a SCiPNET terminal and get started!
+A new tale of the Foundation's efforts begin here at this place, [VAR:NATIVENAME:GLOBAL:YOURFORT], "[VAR:TRANSLATEDNAME:GLOBAL:YOURFORT]".
+ Set up a SCiPNET terminal and get started!
