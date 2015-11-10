@@ -98,6 +98,7 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
     local guidm=require('gui.dwarfmode')
     local widgets=require('gui.widgets')
     callnative=false
+    if not df.viewscreen_dwarfmodest:is_instance(dfhack.gui.getCurViewscreen()) then return end
     local scipNetScreen=defclass(scipNetScreen,guidm.MenuOverlay)
     function scipNetScreen:renderSubviews(dc)
         local highlighted=false
@@ -109,11 +110,14 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
         end
         if not highlighted then self.subviews.highlight_label:setText('Click an icon to continue.') end
     end
+    function scipNetScreen:getSelectedBuilding()
+        
+    end
     function scipNetScreen:init()
         self:addviews{
             Button{
                 graphic='LEGENDS_BOOK',
-                label='Open Legends Mode',
+                label='Open History Database',
                 on_click=function()
                     local legends=dfhack.script_environment('scp/open-legends')
                     legends.show()
@@ -153,6 +157,11 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
         else
             self:inputToSubviews(keys)
             self:sendInputToParent(keys)
+            if df.ui_sidebar_mode[df.global.ui.main.mode]~='QueryBuilding' then self:dismiss() return end
+            local building=df.global.world.selected_building
+            if not building or not df.building_workshopst:is_instance(building) then self:dismiss() return end
+            local buildingCustomType=df.building_def.find(building.custom_type)
+            if not buildingCustomType or buildingCustomType.code~='SCP_NETWORK_ACCESSOR' then self:dismiss() return end
         end
     end
     scipNetScreen():show()
