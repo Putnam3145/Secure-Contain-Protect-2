@@ -20,6 +20,7 @@ creature_scp_euclid
 		[NOEXERT]
 		[NOBREATHE]
 		[NOT_LIVING]
+		[CRAZED]
 		[EXTRAVISION]
 		[PREFSTRING:method of attack]
 		[BODY:SCP_173]
