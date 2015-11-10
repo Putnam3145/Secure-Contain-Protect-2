@@ -289,7 +289,7 @@ end
 
 local script=require('gui.script')
 
-function SCP_294(reaction,unit,input_items,input_reagents,output_items,call_native)
+function SCP_294(reaction,reaction_product,unit,input_items,input_reagents,output_items,call_native)
     script.start(function()
         local mattype,matindex
         repeat
@@ -325,7 +325,7 @@ local function getPizza()
     end
 end
 
-function SCP_458(reaction,unit,input_items,input_reagents,output_items,call_native)
+function SCP_458(reaction,reaction_product,unit,input_items,input_reagents,output_items,call_native)
     local mattype,matindex
     for k,preference in ipairs(unit.status.current_soul.preferences) do
         if not preference then call_native=false return nil end
