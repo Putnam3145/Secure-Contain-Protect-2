@@ -181,12 +181,12 @@ end
 local function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
     local resources=dfhack.script_environment('scp/resources')
     local site=df.global.ui.site_id
-    local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',cost,true)
     if dfhack.persistent.get('SCP_ALREADY_HERE/'..site) and false then 
         local dlg=require('gui.dialogs')
         dlg.showMessage('SCiPNET message','You cannot contain an SCP twice.')
         return false
     end
+    local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',-cost,true)
     if confidenceSpendSuccesful then
         if scp_type=='creature' then
             local teleportPos
@@ -200,6 +200,7 @@ local function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,m
             if not teleportPos then
                 local dlg=require('gui.dialogs')
                 dlg.showMessage('SCiPNET message','You have not built a station to accept that SCP.')
+                resources.adjustResource(site,'confidence',cost)
                 return
             end
             local createUnit=dfhack.script_environment('scp/create-unit').createUnit
