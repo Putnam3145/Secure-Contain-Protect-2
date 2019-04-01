@@ -115,15 +115,17 @@ workshopFuncs['SCP_NETWORK_ACCESSOR']=function(workshop,callnative)
     end
     function scipNetScreen:init()
         self:addviews{
+            --[[ Commented out due to open-legends causing save corruption. Nasty.
             Button{
                 graphic='LEGENDS_BOOK',
                 label='Open History Database',
                 on_click=function()
-                    local legends=dfhack.script_environment('scp/open-legends')
+                    local legends=dfhack.script_environment('open-legends')
                     legends.show()
                 end,
                 frame={t=1,l=1}
             },
+            ]]
             Button{
                 graphic='SCP_LOGO',
                 label='View SCPs',
@@ -201,8 +203,31 @@ end
 
 local repeat_util=require('repeat-util')
 
+local function goThroughContainedUnits()
+    local confidence_drops=dfhack.persistent.get_all('DEAD_OR_ESCAPED_UNIT_CONFIDENCE',true)
+    if confidence_drops then
+        for k,v in ipairs(confidence_drops) do
+            dfhack.timeout(k%8+1,'ticks',function() 
+            local containBurrow=dfhack.burrows.findByName(v.value)
+            local u=df.units.find(v.ints[2])
+            local contained=dfhack.burrows.isAssignedTile(containBurrow,u.pos)
+            if v.ints[3]<1 and not contained then 
+                dfhack.gui.makeAnnouncement(df.announcement_type.MEGABEAST_ARRIVAL,{RECENTER=true,DO_MEGA=true,PAUSE=true},u.pos,v.value.." has escaped containment!",COLOR_RED,true)
+                v.ints[3]=1
+                local site_id=df.global.ui.site_id
+                local resource=dfhack.script_environment('scp/resources')
+                resource.adjustResource(site_id,'confidence',math.floor(-v.ints[1]/4))
+            elseif contained then
+                v.ints[3]=0
+            end
+            end)
+        end
+    end
+end
+
 repeat_util.scheduleEvery('monthly_confidence_boost',605,'ticks',increaseConfidence)
 
+repeat_util.scheduleEvery('check if breached containment',10,'ticks',goThroughContainedUnits)
 ----------------------------------------
 --------------- SCP-294 ----------------
 ----------------------------------------

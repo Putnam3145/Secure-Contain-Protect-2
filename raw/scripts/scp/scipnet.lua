@@ -178,7 +178,27 @@ local function getCaste(creatureRaw,casteName)
     end
 end
 
-local function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,mat)
+local function positionIsValid(x,y,z)
+	local occupancy = dfhack.maps.getTileBlock(x,y,z).occupancy[x%16][y%16]
+	local tiletype = getTileType(x,y,z)
+	local attrs = df.tiletype.attrs[tiletype]
+	return not (occupancy.building~=0 or occupancy.unit or not dfhack.maps.isValidTilePos(x,y,z) or attrs.shape == df.tiletype_shape.WALL)
+end
+
+local function getTeleportPos(containmentBurrow)
+    for k,block in ipairs(dfhack.burrows.listBlocks(containmentBurrow)) do
+        local basePos=block.map_pos
+        for x=basePos.x,basePos.x+15 do
+            for y=basePos.y,basePos.y+15 do
+                if positionIsValid(x,y,basePos.z) then
+                    return xyz2pos(x,y,basePos.z)
+                end
+            end
+        end
+    end
+end
+
+local function offerToContain(cost,scp_name,scp_type,scp_designation,scp_subdesignation,mat)
     local resources=dfhack.script_environment('scp/resources')
     local site=df.global.ui.site_id
     if dfhack.persistent.get('SCP_ALREADY_HERE/'..site) and false then 
@@ -189,28 +209,28 @@ local function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,m
     local confidenceSpendSuccesful=resources.adjustResource(site,'confidence',-cost,true)
     if confidenceSpendSuccesful then
         if scp_type=='creature' then
-            local teleportPos
-            for k,v in ipairs(df.global.world.buildings.other.WORKSHOP_CUSTOM) do
-                local customWorkshopType=df.building_def.find(v.custom_type)
-                if customWorkshopType.code=='SCP_WELCOMING_STATION' then
-                    teleportPos={x=v.x1,y=v.y1,z=v.z}
-                    break
-                end
+            local containmentBurrow=dfhack.burrows.findByName(scp_name)
+            if not containmentBurrow then
+                local dlg=require('gui.dialogs')
+                dlg.showMessage('SCiPNET message','no burrow named "'..scp_name..'" in fortress. Prepare one.')
+                resources.adjustResource(site,'confidence',cost)
+                return false
             end
+            local teleportPos=getTeleportPos(containmentBurrow)
             if not teleportPos then
                 local dlg=require('gui.dialogs')
-                dlg.showMessage('SCiPNET message','You have not built a station to accept that SCP.')
+                dlg.showMessage('SCiPNET message','Containment burrow has no valid place to send SCP.')
                 resources.adjustResource(site,'confidence',cost)
-                return
+                return false
             end
-            local createUnit=dfhack.script_environment('scp/create-unit').createUnit
+            local createUnit=dfhack.script_environment('modtools/create-unit').createUnit
             local creatureType=getRaceID(scp_designation)
             local newUnit=createUnit(creatureType,getCaste(df.creature_raw.find(creatureType),scp_subdesignation))
-            dfhack.persistent.save({key='DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..newUnit,ints={math.abs(cost*2)}})
-            local teleport = dfhack.script_environment('scp/teleport')
-            teleport.teleport(df.unit.find(newUnit),teleportPos)
+            dfhack.persistent.save({key='DEAD_OR_ESCAPED_UNIT_CONFIDENCE/'..newUnit,value=scp_name,ints={math.abs(cost*2),newUnit}})
+            local teleport = dfhack.script_environment('teleport').teleport
+            teleport(df.unit.find(newUnit),teleportPos)
             resources.adjustResource(site,'delta_confidence',cost/10)
-            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},teleportPos,scp_designation..' delivered to '..'this location.',COLOR_GREEN,true) end)
+            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},teleportPos,scp_name..' delivered to its containment.',COLOR_GREEN,true) end)
         elseif scp_type=='item' then
             local citizen=firstCitizenFound()
             local itemtype=findItemID(scp_designation)
@@ -219,7 +239,7 @@ local function offerToContain(cost,scp_type,scp_designation,scp_subdesignation,m
                 print(df.item_type[scp_subdesignation],scp_subdesignation,findItemID(scp_designation),scp_designation,mat[1],mat[2],citizen)
                 error(errormsg)
             end
-            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},citizen.pos,scp_designation..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true) end)
+            dfhack.timeout(1,'ticks',function() dfhack.gui.makeAnnouncement(df.announcement_type.MASTERPIECE_CRAFTED,{RECENTER=true,DO_MEGA=true,PAUSE=true},citizen.pos,scp_name..' delivered to '..dfhack.TranslateName(dfhack.units.getVisibleName(citizen)),COLOR_GREEN,true) end)
         end
     else
         local dlg=require('gui.dialogs')
@@ -249,7 +269,7 @@ function SCPViewScreen:init()
                     --but nothing happened
                     return false
                 end
-                offerToContain(self.cost,self.type,self.designation,self.subdesignation,self.mat)
+                offerToContain(self.cost,self.name,self.type,self.designation,self.subdesignation,self.mat)
             end,
             frame={t=1,l=9}
         },
@@ -406,9 +426,7 @@ local requisitionsTable=dfhack.script_environment('scp/requisitions_list').requi
 local function requisitionItem(cost,itemtype,itemsubtype,mat,quantity)
     local resources=dfhack.script_environment('scp/resources')
     local confidenceSpendSuccesful=resources.adjustResource(df.global.ui.site_id,'confidence',cost,true)
-    print('tested confidence')
     if confidenceSpendSuccesful then
-        print('succesful')
         if mat then
             if type(mat)=='string' then
                 local matinfo=dfhack.matinfo.find(mat)
